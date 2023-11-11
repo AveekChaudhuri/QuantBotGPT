@@ -1,26 +1,28 @@
+#Version 3 contains a model that asks the user what information they desire about any stock and then tells the user that information.
+#This model has an actual input field for the user to fill out and is more user-friendly.
 import os
 import openai
+from openai import OpenAI
 import tiktoken
 import yfinance as yf
 import yahoo_fin.stock_info as si
-#openai.api_key  = "OPENAI API KEY"
+#key  = "OPENAI API KEY"
 
-#standard completion from openai stating model, temperature and token
-def get_completion_from_messages(messages,
-                                 model="gpt-3.5-turbo",
-                                 temperature=0,
-                                 max_tokens=500):
-    response = openai.ChatCompletion.create(
+#completion from openai stating model, temperature and token
+def get_completion(prompt, model="gpt-3.5-turbo"): #This is a more one turn conversation
+    messages = [{"role": "user", "content": prompt}]
+    client = OpenAI(api_key = key)
+    response = client.chat.completions.create(
         model=model,
         messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
+        # this is the degree of randomness of the model's output
     )
-    return response.choices[0].message["content"]
+    return response.choices[0].message.content
 
 #method to geenrate the response with the given prompt, instructions given on what GPT's role is and how to interact
 def generate_response(prompt):
-    response = openai.ChatCompletion.create(
+    client = OpenAI(api_key=key)
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",  # Use the gpt-3.5-turbo model
         messages=[{"role": "system", "content": """
         You are a stock catalog assistant for stock infomation.
@@ -28,7 +30,7 @@ def generate_response(prompt):
         Make sure to ask the user relevant follow up questions."""},
         {"role": "user", "content": prompt}],
     )
-    return response.choices[0].message["content"].strip()
+    return response.choices[0].message.content
 
 #gets the information of any company which is then fed into the GPT model to read
 def get_info(company_name):
@@ -36,37 +38,30 @@ def get_info(company_name):
     return quote_table
 
 #gets the user's inquiry on any stock and any information on that stock and outputs in proper conversational form.
-company_name_prompt = "Please enter the ticker symbol of a company whose stock price you want to know:"
+while True:
+    company_name_prompt = "Please enter the ticker symbol of a company whose stock price you want to know:"
+    #print(company_name_prompt)
+    company_name = input(generate_response(company_name_prompt) + " ")
 
-company_name = input(generate_response(company_name_prompt) + " ")
+    if company_name.lower() == "exit":
+        print("Goodbye!")
+        break
 
+    company_info_prompt = "What would you like to know?"
+    #print(company_info_prompt)
+    company_info = input(generate_response(company_info_prompt) + " ")
 
-company_info_prompt = "What would you like to know?"
+    target_text = get_info(company_name)
 
-company_info = input(generate_response(company_info_prompt) + " ")
+    prompt = f"""
+    The output from pdf and subsequent regex processing is delimited in triple quotes.
+    Describe the {company_info} of the stock in sentence form.
+    ### {target_text} ###.
 
-target_text = get_info(company_name)
+    """
 
-
-def get_completion(prompt, model="gpt-3.5-turbo"): #This is a more than one turn conversation
-    messages = [{"role": "user", "content": prompt}]
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=messages,
-        temperature=0, # this is the degree of randomness of the model's output
-    )
-    return response.choices[0].message["content"]
-
-
-prompt = f"""
-The output from pdf and subsequent regex processing is delimited in triple quotes.
-Describe the {company_info} of the stock in sentence form.
-### {target_text} ###.
-
-"""
-
-response = get_completion(prompt)
-print(response)
+    response = get_completion(prompt)
+    print(response)
 
 
 

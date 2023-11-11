@@ -1,26 +1,28 @@
+#Version 2 contains a model where GPT outputs whatever the inquiry of the user is inside the prompt message. GPT pulls the information 
+#from the yahoo finance library and is able to use a quote table to output the desired information.
 import os
 import openai
+from openai import OpenAI
 import tiktoken
 import yfinance as yf
 import yahoo_fin.stock_info as si
-#openai.api_key  = "OPENAI API KEY"
+#key  = "OPENAI API KEY"
 
-#standard completion from openai stating model, temperature and token
-def get_completion_from_messages(messages,
-                                 model="gpt-3.5-turbo",
-                                 temperature=0,
-                                 max_tokens=500):
-    response = openai.ChatCompletion.create(
+#completion from openai stating model, temperature and token
+def get_completion(prompt, model="gpt-3.5-turbo"): #This is a more than one turn conversation
+    messages = [{"role": "user", "content": prompt}]
+    client = OpenAI(api_key = key)
+    response = client.chat.completions.create(
         model=model,
         messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
+        # this is the degree of randomness of the model's output
     )
-    return response.choices[0].message["content"]
+    return response.choices[0].message.content
 
 #method to geenrate the response with the given prompt, instructions given on what GPT's role is and how to interact
 def generate_response(prompt):
-    response = openai.ChatCompletion.create(
+    client = OpenAI(api_key=key)
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",  # Use the gpt-3.5-turbo model
         messages=[{"role": "system", "content": """
         You are a stock catalog assistant for stock infomation.
@@ -28,7 +30,7 @@ def generate_response(prompt):
         Make sure to ask the user relevant follow up questions."""},
         {"role": "user", "content": prompt}],
     )
-    return response.choices[0].message["content"].strip()
+    return response.choices[0].message.content
 
 #gets the information of any company which is then fed into the GPT model to read
 def get_info(company_name):
@@ -36,15 +38,6 @@ def get_info(company_name):
     return quote_table
 
 target_text = get_info("dell")
-
-def get_completion(prompt, model="gpt-3.5-turbo"): #This is a more one turn conversation
-    messages = [{"role": "user", "content": prompt}]
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=messages,
-        temperature=1, # this is the degree of randomness of the model's output
-    )
-    return response.choices[0].message["content"]
 
 #prompting for GPT to understand its role and give the desired output with the quote table received from target_text
 prompt = f"""
@@ -54,7 +47,7 @@ Describe the day's highest stock price of the stock in sentence form.
 
 """
 response = get_completion(prompt)
-print(response)
+print(str(response))
 
 #double checking the yfinance information with the table regarding the current stock written down
 quote_table1 = si.get_quote_table("dell", dict_result=False)

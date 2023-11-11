@@ -2,26 +2,32 @@
 #the current price of that specific stock is outputted. This continues on until the user is done and terminated the bot.
 import os
 import openai
+from openai import OpenAI
 import tiktoken
 import yfinance as yf
-#openai.api_key  = "OPENAI API KEY"
+#key  = "OPENAI API KEY"
 
 #standard completion from openai stating model, temperature and token
 def get_completion_from_messages(messages,
                                  model="gpt-3.5-turbo",
                                  temperature=0,
                                  max_tokens=500):
+    client = OpenAI(api_key=key)
+    response = client.chat.completions.create(messages=messages,model=model)
+    '''
     response = openai.ChatCompletion.create(
         model=model,
         messages=messages,
         temperature=temperature,
         max_tokens=max_tokens,
     )
-    return response.choices[0].message["content"]
+    '''
+    return response.choices[0].message.content
 
 #method to geenrate the response with the given prompt, instructions given on what GPT's role is and how to interact
 def generate_response(prompt):
-    response = openai.ChatCompletion.create(
+    client = OpenAI(api_key=key)
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",  # Use the gpt-3.5-turbo model
         messages=[{"role": "system", "content": """
         You are a stock catalog assistant for stock infomation.
@@ -29,7 +35,7 @@ def generate_response(prompt):
         Make sure to ask the user relevant follow up questions."""},
         {"role": "user", "content": prompt}],
     )
-    return response.choices[0].message["content"].strip()
+    return response.choices[0].message.content
 
 
 #gets the current price of any stock whose information is stored in yfinance
@@ -49,7 +55,8 @@ def get_current_stock_price(company_name):
 while True:
 
     company_name_prompt = "Please enter the ticker symbol of a company whose stock price you want to know:"
-    company_name = input(generate_response(company_name_prompt) + " ")
+    #print(company_name_prompt)
+    company_name = input(str(generate_response(company_name_prompt)) + " ")
 
     if company_name.lower() == "exit":
         print("Goodbye!")
